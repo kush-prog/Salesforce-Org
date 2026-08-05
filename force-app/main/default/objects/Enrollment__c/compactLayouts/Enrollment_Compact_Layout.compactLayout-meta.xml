@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Enrollment_Compact_Layout</fullName>
+    <fields>Name</fields>
+    <fields>Student__c</fields>
+    <fields>Course__c</fields>
+    <fields>Grade__c</fields>
+    <fields>Enrollment_Date__c</fields>
+    <label>Enrollment Compact Layout</label>
+</CompactLayout>

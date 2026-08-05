@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Student_Must_Be_At_Least_16</fullName>
+    <active>true</active>
+    <errorConditionFormula>OR(
+    ISBLANK(DOB__c),
+    DOB__c &gt; ADDMONTHS(TODAY(), -192)
+)</errorConditionFormula>
+    <errorDisplayField>DOB__c</errorDisplayField>
+    <errorMessage>Student must be at least 16 years old.</errorMessage>
+</ValidationRule>
