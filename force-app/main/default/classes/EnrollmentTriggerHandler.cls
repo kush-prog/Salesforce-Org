@@ -30,7 +30,7 @@ public with sharing class EnrollmentTriggerHandler {
         }
 
         List<Course__c> courses = [
-            SELECT Id, Max_Seats__c, Status__c, (SELECT Id FROM Enrollments__r)
+            SELECT Id, Capacity__c, Status__c, (SELECT Id FROM Enrollments__r)
             FROM Course__c
             WHERE Id IN :courseIds
         ];
@@ -39,8 +39,8 @@ public with sharing class EnrollmentTriggerHandler {
         for (Course__c course : courses) {
             Integer enrolledCount = course.Enrollments__r.size();
 
-            Boolean isFull = course.Max_Seats__c != null
-                && enrolledCount == Integer.valueOf(course.Max_Seats__c);
+            Boolean isFull = course.Capacity__c != null
+                && enrolledCount == Integer.valueOf(course.Capacity__c);
             Boolean alreadyClosed = course.Status__c == STATUS_CLOSED;
 
             if (isFull && !alreadyClosed) {
@@ -72,7 +72,7 @@ public with sharing class EnrollmentTriggerHandler {
         }
 
         List<Course__c> closedCourses = [
-            SELECT Id, Max_Seats__c, Status__c, (SELECT Id FROM Enrollments__r)
+            SELECT Id, Capacity__c, Status__c, (SELECT Id FROM Enrollments__r)
             FROM Course__c
             WHERE Id IN :courseIds AND Status__c = :STATUS_CLOSED
         ];
@@ -81,8 +81,8 @@ public with sharing class EnrollmentTriggerHandler {
         for (Course__c course : closedCourses) {
             Integer enrolledCount = course.Enrollments__r.size();
 
-            Boolean isBelowCapacity = course.Max_Seats__c != null
-                && enrolledCount < Integer.valueOf(course.Max_Seats__c);
+            Boolean isBelowCapacity = course.Capacity__c != null
+                && enrolledCount < Integer.valueOf(course.Capacity__c);
 
             if (isBelowCapacity) {
                 coursesToReopen.add(new Course__c(Id = course.Id, Status__c = STATUS_OPEN));
