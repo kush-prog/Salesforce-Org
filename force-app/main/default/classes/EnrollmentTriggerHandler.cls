@@ -1,11 +1,11 @@
-// Handler class for EnrollmentTrigger. Enrollment__c is a junction object between Student__c and Course__c. 
+// Handler class for EnrollmentTrigger. Enrollment__c is a junction object between Student__c and Course__c.
 // Keeps Course__c Status__c in sync with seat availability: closes a course once it hits Max Seats, 
 // reopens it if a cancellation drops the count back below Max Seats.
- 
+
 public with sharing class EnrollmentTriggerHandler {
 
-    private static final String STATUS_CLOSED = 'Closed';
-    private static final String STATUS_OPEN = 'Open';
+    private final String STATUS_CLOSED = 'Closed';
+    private final String STATUS_OPEN = 'Open';
 
     public void run() {
         if (!Trigger.isAfter) {
@@ -21,7 +21,7 @@ public with sharing class EnrollmentTriggerHandler {
         }
     }
 
-    // If a Course's enrollment count reaches its Capacity after this insert, close the course. Uses exactly 1 SOQL query and 1 DML statement.
+    // If a Course's enrollment count reaches its Max Seats after this insert, close the course. Uses exactly 1 SOQL query and 1 DML statement.
 
     public void onAfterInsert(List<Enrollment__c> newList) {
         Set<Id> courseIds = collectCourseIds(newList);
@@ -29,9 +29,8 @@ public with sharing class EnrollmentTriggerHandler {
             return;
         }
 
-        // Single SOQL: fetch each affected course along with its current enrollment count
         List<Course__c> courses = [
-            SELECT Id, Capacity__c, Status__c, (SELECT Id FROM Enrollments__r)
+            SELECT Id, Max_Seats__c, Status__c, (SELECT Id FROM Enrollments__r)
             FROM Course__c
             WHERE Id IN :courseIds
         ];
@@ -40,8 +39,8 @@ public with sharing class EnrollmentTriggerHandler {
         for (Course__c course : courses) {
             Integer enrolledCount = course.Enrollments__r.size();
 
-            Boolean isFull = course.Capacity__c != null
-                && enrolledCount == Integer.valueOf(course.Capacity__c);
+            Boolean isFull = course.Max_Seats__c != null
+                && enrolledCount == Integer.valueOf(course.Max_Seats__c);
             Boolean alreadyClosed = course.Status__c == STATUS_CLOSED;
 
             if (isFull && !alreadyClosed) {
@@ -51,6 +50,12 @@ public with sharing class EnrollmentTriggerHandler {
 
         if (!coursesToClose.isEmpty()) {
             update coursesToClose;
+
+            Set<Id> closedCourseIds = new Set<Id>();
+            for (Course__c course : coursesToClose) {
+                closedCourseIds.add(course.Id);
+            }
+            EnrollmentNotificationService.logCourseClosedEmail(closedCourseIds);
         }
     }
 
@@ -66,10 +71,8 @@ public with sharing class EnrollmentTriggerHandler {
             return;
         }
 
-        // Single SOQL: only pull courses that are currently Closed, Since only those are eligible to reopen
         List<Course__c> closedCourses = [
-            SELECT Id, Capacity__c, Status__c, (SELECT Id FROM Enrollments__r)
-
+            SELECT Id, Max_Seats__c, Status__c, (SELECT Id FROM Enrollments__r)
             FROM Course__c
             WHERE Id IN :courseIds AND Status__c = :STATUS_CLOSED
         ];
@@ -78,8 +81,8 @@ public with sharing class EnrollmentTriggerHandler {
         for (Course__c course : closedCourses) {
             Integer enrolledCount = course.Enrollments__r.size();
 
-            Boolean isBelowCapacity = course.Capacity__c != null
-                && enrolledCount < Integer.valueOf(course.Capacity__c);
+            Boolean isBelowCapacity = course.Max_Seats__c != null
+                && enrolledCount < Integer.valueOf(course.Max_Seats__c);
 
             if (isBelowCapacity) {
                 coursesToReopen.add(new Course__c(Id = course.Id, Status__c = STATUS_OPEN));
